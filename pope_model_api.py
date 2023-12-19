@@ -1,15 +1,14 @@
-
 import os
 import cv2
 import torch
-import pandas as pd 
+import pandas as pd
 import numpy as np
 import time
 import json
 import shutil
 from loguru import logger
 
-from  tqdm import tqdm
+from tqdm import tqdm
 import torch.nn.functional as F
 
 from numpy.linalg import inv
@@ -22,7 +21,7 @@ from tabulate import tabulate
 from loguru import logger
 
 from segment_anything.segment_anything import (
-    SamAutomaticMaskGenerator, 
+    SamAutomaticMaskGenerator,
     sam_model_registry
 )
 
@@ -40,7 +39,7 @@ from segment_anything.segment_anything import (
 )
 
 from utils.data_utils import (
-    get_image_crop_resize, 
+    get_image_crop_resize,
     get_K_crop_resize
 )
 
@@ -64,7 +63,7 @@ def recall_object(boxA, boxB, thresholded=0.5):
     interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
     boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
     boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-    iou = interArea / float(boxAArea + boxBArea - interArea)    
+    iou = interArea / float(boxAArea + boxBArea - interArea)
     return iou
 
 
@@ -101,7 +100,7 @@ def gen_crop_images(masks, image, base_name):
         x, y, w, h = mask["bbox"]
         object_mask = np.array(255*object_mask, dtype=np.uint8)
         crop_img, crop_pos = crop_tool.crop( image,  mask["bbox"], scale=1.2, out_w=224, out_h=224 )
-        torch_image = set_torch_image(crop_img)        
+        torch_image = set_torch_image(crop_img)
         # cv2.imwrite(f"crop_images/{base_name}-crop-{idx}.jpg", crop_img)
         images.append(torch_image)
     return torch.cat(images, dim = 0)
@@ -128,14 +127,14 @@ class CropImage:
         y = bbox[1]
         box_w = bbox[2]
         box_h = bbox[3]
-        scale = min((src_h-1)/box_h, min((src_w-1)/box_w, scale))
+        scale = min((src_h - 1) / box_h, min((src_w - 1) / box_w, scale))
         new_width = box_w * scale
         new_height = box_h * scale
-        center_x, center_y = box_w/2+x, box_h/2+y
-        left_top_x = center_x-new_width/2
-        left_top_y = center_y-new_height/2
-        right_bottom_x = center_x+new_width/2
-        right_bottom_y = center_y+new_height/2
+        center_x, center_y = box_w / 2 + x, box_h / 2 + y
+        left_top_x = center_x - new_width / 2
+        left_top_y = center_y - new_height / 2
+        right_bottom_x = center_x + new_width / 2
+        right_bottom_y = center_y + new_height/2
 
         if left_top_x < 0:
             right_bottom_x -= left_top_x
@@ -145,13 +144,13 @@ class CropImage:
             right_bottom_y -= left_top_y
             left_top_y = 0
 
-        if right_bottom_x > src_w-1:
-            left_top_x -= right_bottom_x-src_w+1
-            right_bottom_x = src_w-1
+        if right_bottom_x > src_w - 1:
+            left_top_x -= right_bottom_x - src_w + 1
+            right_bottom_x = src_w - 1
 
-        if right_bottom_y > src_h-1:
-            left_top_y -= right_bottom_y-src_h+1
-            right_bottom_y = src_h-1
+        if right_bottom_y > src_h - 1:
+            left_top_y -= right_bottom_y - src_h + 1
+            right_bottom_y = src_h - 1
 
         return int(left_top_x), int(left_top_y),\
                int(right_bottom_x), int(right_bottom_y)
@@ -165,10 +164,10 @@ class CropImage:
             left_top_x, left_top_y, \
                 right_bottom_x, right_bottom_y = self._get_new_box(src_w, src_h, bbox, scale)
 
-            img = org_img[left_top_y: right_bottom_y+1,
-                          left_top_x: right_bottom_x+1]
+            img = org_img[left_top_y: right_bottom_y + 1,
+                          left_top_x: right_bottom_x + 1]
             dst_img = cv2.resize(img, (out_w, out_h))
-        return dst_img, [left_top_x, left_top_y, right_bottom_x, right_bottom_y ]
+        return dst_img, [left_top_x, left_top_y, right_bottom_x, right_bottom_y]
 
 
 
@@ -177,6 +176,7 @@ from src.utils.metrics import estimate_pose, relative_pose_error
 
 matcher = Matcher(config=default_cfg)
 # we set strict to False
+# matcher.pth就是loftr的indoor_ot.ckpt，文件大小是一样的，都是44.1M
 matcher.load_state_dict(torch.load("weights/matcher.pth")['state_dict'], strict=False)
 matcher = matcher.eval().cuda()
 logger.info(f"load Matcher successfully")
