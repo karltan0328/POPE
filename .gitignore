@@ -3,6 +3,7 @@ __pycache__
 build/
 website_src/
 node_modules/
+**/LINEMOD
 **/LM_dataset
 **/LM_dataset_src
 **/weights
