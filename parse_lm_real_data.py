@@ -173,6 +173,7 @@ if __name__ == "__main__":
                 np.loadtxt(
                     osp.join(image_seq_dir, "-".join([dataset_img_id, "box"]) + ".txt")
                 )
+                # .astype(np.int) # 原代码
                 .astype(int)
                 .tolist()
             )

@@ -5,5 +5,13 @@ website_src/
 node_modules/
 **/LINEMOD
 **/LM_dataset
-**/LM_dataset_src
+**/LM_dataset-points
+**/onepose
+**/onepose-points
+**/oneposeplusplus
+**/oneposeplusplus-points
+**/ycbv
+**/ycbv-points
+
 **/weights
+**/test.ipynb

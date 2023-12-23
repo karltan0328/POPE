@@ -1,6 +1,5 @@
 from pope_model_api import *
 
-
 if __name__ == "__main__":
     ckpt, model_type = get_model_info("h")
     sam = sam_model_registry[model_type](checkpoint=ckpt)
@@ -11,10 +10,11 @@ if __name__ == "__main__":
     crop_tool = CropImage()
     dinov2_model = load_dinov2_model()
     dinov2_model.to("cuda:0")
+
     metrics = dict()
     metrics.update({'R_errs':[], 't_errs':[], 'inliers':[], "identifiers":[]})
+
     ROOT_DIR = "data/LM_dataset/"
-    dir_list = os.listdir(ROOT_DIR)
 
     id2name_dict = {
         1: "ape",
@@ -32,8 +32,6 @@ if __name__ == "__main__":
         15: "phone",
     }
 
-    from tqdm import tqdm
-    import torch.nn.functional as F
     res_table = []
 
     import json
@@ -170,6 +168,7 @@ if __name__ == "__main__":
                     metrics['t_errs'].append(90)
                 metrics["identifiers"].append(pair_name)
 
+        print(f"Acc: {recall_image}/{all_image}")
         import pprint
         from src.utils.metrics import (
             aggregate_metrics

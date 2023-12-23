@@ -14,6 +14,7 @@ if __name__ == "__main__":
     metrics = dict()
     metrics.update({'R_errs':[], 't_errs':[], 'inliers':[], "identifiers":[]})
 
+    ROOT_DIR = "data/onepose/"
 
     id2name_dict = {
         1: "ape",
@@ -31,20 +32,16 @@ if __name__ == "__main__":
         15: "phone",
     }
 
-
-
-    # load model
-    ROOT_DIR = "data/onepose/"
     res_table = []
 
     import json
-    with open("data/pairs/Onepose-HighTexture-test.json") as f:
+    with open("data/pairs/Onepose-test.json") as f:
         dir_list = json.load(f)
 
     for label_idx, test_dict in enumerate(dir_list):
-        print(f"Onepose: {label_idx}")
+        logger.info(f"Onepose: {label_idx}")
         metrics = dict()
-        metrics.update({'R_errs':[], 't_errs':[], 'inliers':[] , "identifiers":[]})
+        metrics.update({'R_errs':[], 't_errs':[], 'inliers':[], "identifiers":[]})
         sample_data = dir_list[label_idx]["0"][0]
         label = sample_data.split("/")[0]
         name = label.split("-")[1]
@@ -58,13 +55,11 @@ if __name__ == "__main__":
                 idx0_name = base_name.split("-")[0]
                 idx1_name = base_name.split("-")[1]
                 image0_name = os.path.join(FULL_ROOT_DIR, idx0_name)
-
                 image1_name = os.path.join(FULL_ROOT_DIR.replace("color", "color"), idx1_name)
                 intrinsic_path = image0_name.replace("color", "intrin_ba").replace("png", "txt")
                 K0 = np.loadtxt(intrinsic_path, delimiter=' ')
                 intrinsic_path = image1_name.replace("color", "intrin_ba").replace("png", "txt")
                 K1 = np.loadtxt(intrinsic_path, delimiter=' ')
-
                 image0 = cv2.imread(image0_name)
                 ref_torch_image = set_torch_image(image0, center_crop=True)
                 ref_fea = get_cls_token_torch(dinov2_model, ref_torch_image)
@@ -149,6 +144,7 @@ if __name__ == "__main__":
                 # pose1 = np.vstack((pose1, np.array([[0, 0, 0, 1]])))
                 relative_pose = np.matmul(pose1, inv(pose0))
                 t = relative_pose[:3, -1].reshape(1, 3)
+
                 if "crop_image" not in top_images[top_idx]:
                     continue
                 max_match_idx = np.argmax(matching_score)
@@ -176,7 +172,6 @@ if __name__ == "__main__":
                     metrics['t_errs'].append(90)
                 metrics["identifiers"].append( pair_name )
 
-
         print(f"Acc: {recall_image}/{all_image}")
         import pprint
         from src.utils.metrics import (
@@ -186,7 +181,6 @@ if __name__ == "__main__":
         val_metrics_4tb = aggregate_metrics(metrics, 5e-4)
         val_metrics_4tb["AP50"] = recall_image/all_image
         logger.info('\n' + pprint.pformat(val_metrics_4tb))
-
         res_table.append([f"{name }"] + list(val_metrics_4tb.values()))
 
     from tabulate import tabulate

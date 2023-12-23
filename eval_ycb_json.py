@@ -1,6 +1,5 @@
 from pope_model_api import *
 
-
 if __name__  == "__main__":
     ckpt, model_type = get_model_info("h")
     sam = sam_model_registry[model_type](checkpoint=ckpt)
@@ -13,10 +12,8 @@ if __name__  == "__main__":
     dinov2_model.to("cuda:0")
 
     metrics = dict()
-    metrics.update({'R_errs':[], 't_errs':[], 'inliers':[] , "identifiers":[]})
+    metrics.update({'R_errs':[], 't_errs':[], 'inliers':[], "identifiers":[]})
 
-
-    # load data ROOR_DIR
     ROOT_DIR = "data/ycbv/"
     res_table = []
 
@@ -25,7 +22,7 @@ if __name__  == "__main__":
         dir_list = json.load(f)
 
     for label_idx , test_dict in enumerate(dir_list):
-        logger.info(f"YCBVIDEO: {label_idx}")
+        logger.info(f"YCB-VIDEO: {label_idx}")
         metrics = dict()
         metrics.update({'R_errs':[], 't_errs':[], 'inliers':[] , "identifiers":[]})
         sample_data = dir_list[label_idx]["0"][0]
@@ -43,7 +40,6 @@ if __name__  == "__main__":
                 image0_name = os.path.join(FULL_ROOT_DIR, idx0_name)
                 image1_name = os.path.join(FULL_ROOT_DIR.replace("color", "color_full"), idx1_name)
                 intrinsic_path = image0_name.replace("color", "intrin_ba").replace("png","txt")
-
                 K0 = np.loadtxt(intrinsic_path, delimiter=' ')
                 intrinsic_path = image1_name.replace("color_full", "intrin").replace("png", "txt")
                 K1 = np.loadtxt(intrinsic_path, delimiter=' ')
