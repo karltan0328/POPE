@@ -135,7 +135,7 @@ for label_idx, test_dict in enumerate(dir_list):
             if "crop_image" not in top_images[top_idx]:
                 continue
             max_match_idx = np.argmax(matching_score)
-            pre_bbox = top_images[max_match_idx]["bbox"]
+            pre_bbox = top_images[max_match_idx]["bbox"] # 需要保存
             mkpts0 = top_images[max_match_idx]["mkpts0"] # 需要保存
             mkpts1 = top_images[max_match_idx]["mkpts1"] # 需要保存
             pre_K = top_images[max_match_idx]["K"]       # 需要保存
@@ -145,9 +145,11 @@ for label_idx, test_dict in enumerate(dir_list):
                 continue
 
             points_file_path = os.path.join("data/oneposeplusplus-points/", pair_name.split("/")[0])
+            pre_bbox_path = os.path.join(points_file_path, "pre_bbox")
             mkpts0_path = os.path.join(points_file_path, "mkpts0")
             mkpts1_path = os.path.join(points_file_path, "mkpts1")
             pre_K_path = os.path.join(points_file_path, "pre_K")
+            Path(pre_bbox_path).mkdir(parents=True, exist_ok=True)
             Path(mkpts0_path).mkdir(parents=True, exist_ok=True)
             Path(mkpts1_path).mkdir(parents=True, exist_ok=True)
             Path(pre_K_path).mkdir(parents=True, exist_ok=True)
@@ -157,6 +159,7 @@ for label_idx, test_dict in enumerate(dir_list):
             # print("pre_K_path =", pre_K_path)
             points_name = pair_name.split("/")[-1]
 
+            np.savetxt(os.path.join(pre_bbox_path, f"{points_name}.txt"), pre_bbox)
             np.savetxt(os.path.join(mkpts0_path, f"{points_name}.txt"), mkpts0)
             np.savetxt(os.path.join(mkpts1_path, f"{points_name}.txt"), mkpts1)
             np.savetxt(os.path.join(pre_K_path, f"{points_name}.txt"), pre_K)
