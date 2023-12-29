@@ -7,12 +7,14 @@ from torch.utils.data import Dataset
 class pose_dataset(Dataset):
     def __init__(self, json_paths:list):
         self.data = []
-        for dataset_name, dataset_path, json_path, points_path in tqdm(json_paths):
+        self.mkpts_max_len = 0
+        self.mkpts_sum_len = 0
+        for dataset_name, dataset_path, json_path, points_path in json_paths:
             assert os.path.exists(dataset_path), f'{dataset_path} does not exist'
             assert os.path.exists(json_path), f'{json_path} does not exist'
             with open(json_path) as f:
                 dir_list = json.load(f)
-            for label_idx, dict in enumerate(dir_list):
+            for label_idx, dict in enumerate(tqdm(dir_list)):
                 sample_data = dir_list[label_idx]["0"][0]
                 label = sample_data.split("/")[0]
                 name = label.split("-")[1]
@@ -69,13 +71,30 @@ class pose_dataset(Dataset):
                         if mkpts0.shape[0] == 0:
                             print(f'file {mkpts0_path} is empty')
                             continue
-                        self.data.append([K0, K1, pose0, pose1, mkpts0, mkpts1, pre_K])
+                        if mkpts0.shape[0] != mkpts1.shape[0]:
+                            print("mkpts0.shape[0] != mkpts1.shape[0]")
+                            continue
+                        self.mkpts_max_len = max(self.mkpts_max_len, mkpts0.shape[0])
+                        self.mkpts_sum_len += mkpts0.shape[0]
+                        item = {}
+                        item['K0'] = K0
+                        item['K1'] = K1
+                        item['pose0'] = pose0
+                        item['pose1'] = pose1
+                        item['mkpts0'] = mkpts0
+                        item['mkpts1'] = mkpts1
+                        item['pre_K'] = pre_K
+                        item['name'] = name
+                        self.data.append(item)
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         return self.data[idx]
+
+    def get_mkpts_info(self):
+        return self.mkpts_max_len, self.mkpts_sum_len
 
 
 if __name__ == '__main__':
