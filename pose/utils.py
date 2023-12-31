@@ -131,16 +131,7 @@ def relative_pose_error(T_0to1, R, t, ignore_gt_t_thr=0.0):
     t: (batch, 3)
     """
     # angle error between 2 vectors
-    t_gt = T_0to1[:, :3, 3] # (batch, 3)
-
-    # n = np.linalg.norm(t) * np.linalg.norm(t_gt)
-    # t_err = np.rad2deg(
-    #     np.arccos(
-    #         np.clip(
-    #             np.dot(t, t_gt) / n, -1.0, 1.0)))
-    # t_err = np.minimum(t_err, 180 - t_err)      # handle E ambiguity
-    # if np.linalg.norm(t_gt) < ignore_gt_t_thr:  # pure rotation is challenging
-    #     t_err = 0
+    t_gt = T_0to1[:, :3, 3].to(t.device) # (batch, 3)
 
     n = (torch.norm(t, dim=-1) * torch.norm(t_gt, dim=-1)).reshape(-1, 1) # (batch, 1)
     t_err = torch.rad2deg( # (batch, 1)
@@ -152,11 +143,7 @@ def relative_pose_error(T_0to1, R, t, ignore_gt_t_thr=0.0):
     t_err[t_err_0_indices] = 0
 
     # angle error between 2 rotation matrices
-    R_gt = T_0to1[:, :3, :3] # (batch, 3, 3)
-
-    # cos = (np.trace(np.dot(R.T, R_gt)) - 1) / 2
-    # cos = np.clip(cos, -1., 1.)  # handle numercial errors
-    # R_err = np.rad2deg(np.abs(np.arccos(cos)))
+    R_gt = T_0to1[:, :3, :3].to(R.device) # (batch, 3, 3)
 
     bmm = torch.bmm(R.permute(0, 2, 1), R_gt) # (batch, 3, 3)
     bmm_trace = bmm.diagonal(dim1=1, dim2=2).sum(dim=-1).reshape(-1, 1) # (batch, 1)
@@ -164,6 +151,34 @@ def relative_pose_error(T_0to1, R, t, ignore_gt_t_thr=0.0):
     cos = torch.clamp(cos, -1., 1.)  # handle numercial errors
     R_err = torch.rad2deg(torch.abs(torch.arccos(cos))) # (batch, 1)
     return t_err, R_err
+
+
+def project_points(pts, RT, K):
+    pts = np.matmul(pts, RT[:, :3].transpose()) + RT[:, 3:].transpose()
+    pts = np.matmul(pts, K.transpose())
+    dpt = pts[:, 2]
+    mask0 = (np.abs(dpt) < 1e-4) & (np.abs(dpt) > 0)
+    if np.sum(mask0) > 0:
+        dpt[mask0]=  1e-4
+    mask1 = (np.abs(dpt) > -1e-4) & (np.abs(dpt) < 0)
+    if np.sum(mask1) > 0:
+        dpt[mask1] = -1e-4
+    pts2d = pts[:, :2] / dpt[:, None]
+    return pts2d, dpt
+
+
+def recall_object(boxA, boxB, thresholded=0.5):
+    boxA = [int(x) for x in boxA]
+    boxB = [int(x) for x in boxB]
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+    iou = interArea / float(boxAArea + boxBArea - interArea)
+    return iou
 
 
 def error_acc(type, errors, thresholds):

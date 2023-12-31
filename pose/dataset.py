@@ -1,8 +1,11 @@
 import os
+import cv2
 import json
 import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset
+
+from utils import project_points
 
 class pose_dataset(Dataset):
     def __init__(self, json_paths:list):
@@ -48,10 +51,12 @@ class pose_dataset(Dataset):
                             pose1_path = image1_name.replace("color", "poses_ba").replace("png", "txt")
 
                         points_file_path = os.path.join(points_path, pair_name.split('/')[0])
+                        pre_bbox_path = os.path.join(points_file_path, "pre_bbox")
                         mkpts0_path = os.path.join(points_file_path, "mkpts0")
                         mkpts1_path = os.path.join(points_file_path, "mkpts1")
                         pre_K_path = os.path.join(points_file_path, "pre_K")
                         points_name = pair_name.split("/")[-1]
+                        pre_bbox_path = os.path.join(pre_bbox_path, f'{points_name}.txt')
                         mkpts0_path = os.path.join(mkpts0_path, f'{points_name}.txt')
                         mkpts1_path = os.path.join(mkpts1_path, f'{points_name}.txt')
                         pre_K_path = os.path.join(pre_K_path, f'{points_name}.txt')
@@ -67,6 +72,13 @@ class pose_dataset(Dataset):
                             print(f'{mkpts0_path} does not exist')
                             continue
                         mkpts1 = np.loadtxt(mkpts1_path)
+                        pre_bbox = np.loadtxt(pre_bbox_path)
+                        _3d_bbox = np.loadtxt(f'{os.path.join(dataset_path, label)}/box3d_corners.txt')
+                        bbox_pts_3d, _ = project_points(_3d_bbox, pose1[:3, :4], K1)
+                        bbox_pts_3d = bbox_pts_3d.astype(np.int32)
+                        x0, y0, w, h = cv2.boundingRect(bbox_pts_3d)
+                        x1, y1 = x0 + w, y0 + h
+                        gt_bbox = np.array([x0, y0, x1, y1])
                         pre_K = np.loadtxt(pre_K_path)
                         if mkpts0.shape[0] == 0:
                             print(f'file {mkpts0_path} is empty')
@@ -81,6 +93,8 @@ class pose_dataset(Dataset):
                         item['K1'] = K1
                         item['pose0'] = pose0
                         item['pose1'] = pose1
+                        item['pre_bbox'] = pre_bbox
+                        item['gt_bbox'] = gt_bbox
                         item['mkpts0'] = mkpts0
                         item['mkpts1'] = mkpts1
                         item['pre_K'] = pre_K
@@ -98,24 +112,35 @@ class pose_dataset(Dataset):
 
 
 if __name__ == '__main__':
-    LM_dataset_path = 'data/LM_dataset/'
-    LM_dataset_json_path = 'data/pairs/LINEMOD-test.json'
-    LM_dataset_points_path = 'data/LM_dataset-points/'
+    if os.name == 'nt':
+        LM_dataset_path = 'd:/git_project/POPE/data/LM_dataset/'
+        LM_dataset_json_path = 'd:/git_project/POPE/data/pairs/LINEMOD-test.json'
+        LM_dataset_points_path = 'd:/git_project/POPE/data/LM_dataset-points/'
 
-    onepose_path = 'data/onepose/'
-    onepose_json_path = 'data/pairs/Onepose-test.json'
-    onepose_points_path = 'data/onepose-points/'
+        onepose_path = 'e:/datasets/OnePose/test_data/'
+        onepose_json_path = 'd:/git_project/POPE/data/pairs/Onepose-test.json'
+        onepose_points_path = 'd:/git_project/POPE/data/onepose-points/'
 
-    oneposeplusplus_path = 'data/oneposeplusplus/'
-    oneposeplusplus_json_path = 'data/pairs/OneposePlusPlus-test.json'
-    oneposeplusplus_points_path = 'data/oneposeplusplus-points/'
+        oneposeplusplus_path = 'e:/datasets/OnePose++/lowtexture_test_data/'
+        oneposeplusplus_json_path = 'd:/git_project/POPE/data/pairs/OneposePlusPlus-test.json'
+        oneposeplusplus_points_path = 'd:/git_project/POPE/data/oneposeplusplus-points/'
+    elif os.name == 'posix':
+        LM_dataset_path = 'data/LM_dataset/'
+        LM_dataset_json_path = 'data/pairs/LINEMOD-test.json'
+        LM_dataset_points_path = 'data/LM_dataset-points/'
+
+        onepose_path = 'data/onepose/'
+        onepose_json_path = 'data/pairs/Onepose-test.json'
+        onepose_points_path = 'data/onepose-points/'
+
+        oneposeplusplus_path = 'data/oneposeplusplus/'
+        oneposeplusplus_json_path = 'data/pairs/OneposePlusPlus-test.json'
+        oneposeplusplus_points_path = 'data/oneposeplusplus-points/'
     paths = [
         ('linemod', LM_dataset_path, LM_dataset_json_path, LM_dataset_points_path),
         ('onepose', onepose_path, onepose_json_path, onepose_points_path),
         ('oneposeplusplus', oneposeplusplus_path, oneposeplusplus_json_path, oneposeplusplus_points_path)
     ]
     data = pose_dataset(paths)
-    for i in range(len(data)):
-        for j in range(len(data[i])):
-            if data[i][j].shape[0] == 0:
-                print(i, j)
+    for key in data[0].keys():
+        print(data[0][key])
