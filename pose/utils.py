@@ -14,7 +14,7 @@ def geodesic_distance(X, X1=None, mode='mean'):
 
     m = X @ X1.permute(0, 2, 1)
     cos = (m[:, 0, 0] + m[:, 1, 1] + m[:, 2, 2] - 1) / 2
-    cos = torch.clamp(cos, -1., 1.) # handle numercial errors
+    cos = torch.clamp(cos, -0.999999, 0.999999) # handle numercial errors
     # cos = torch.min(cos, torch.ones(X.shape[0])).to(device)
     # cos = torch.max(cos, -torch.ones(X.shape[0])).to(device)
     if mode == 'mean':
@@ -103,6 +103,7 @@ def o6d2mat(ortho6d):
 
 
 def collate_fn(num_sample):
+    random.seed(20231223)
     def collate(batch):
         # print(len(batch), type(batch), type(batch[0]))
         after_process_batch = []

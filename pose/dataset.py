@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 from torch.utils.data import Dataset
 
-from utils import project_points
+from pose.utils import project_points
 
 class pose_dataset(Dataset):
     def __init__(self, json_paths:list):
