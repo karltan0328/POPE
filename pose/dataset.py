@@ -65,6 +65,10 @@ class pose_dataset(Dataset):
                         K1 = np.loadtxt(K1_path)
                         pose0 = np.loadtxt(pose0_path)
                         pose1 = np.loadtxt(pose1_path)
+                        if pose0.shape[0] == 3:
+                            pose0 = np.concatenate((pose0, np.array([[0, 0, 0, 1]])), axis=0)
+                        if pose1.shape[0] == 3:
+                            pose1 = np.concatenate((pose1, np.array([[0, 0, 0, 1]])), axis=0)
 
                         try:
                             mkpts0 = np.loadtxt(mkpts0_path)
@@ -99,6 +103,7 @@ class pose_dataset(Dataset):
                         item['mkpts1'] = mkpts1
                         item['pre_K'] = pre_K
                         item['name'] = name
+                        item['pair_name'] = pair_name
                         self.data.append(item)
 
     def __len__(self):

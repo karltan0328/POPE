@@ -1,6 +1,8 @@
 import torch
 import random
 import numpy as np
+from loguru import logger
+from collections import OrderedDict
 
 
 def geodesic_distance(X, X1=None, mode='mean'):
@@ -154,6 +156,23 @@ def relative_pose_error(T_0to1, R, t, ignore_gt_t_thr=0.0):
     return t_err, R_err
 
 
+def relative_pose_error_np(T_0to1, R, t, ignore_gt_t_thr=0.0):
+    # angle error between 2 vectors
+    t_gt = T_0to1[:3, 3]
+    n = np.linalg.norm(t) * np.linalg.norm(t_gt)
+    t_err = np.rad2deg(np.arccos(np.clip(np.dot(t, t_gt) / n, -1.0, 1.0)))
+    t_err = np.minimum(t_err, 180 - t_err)      # handle E ambiguity
+    if np.linalg.norm(t_gt) < ignore_gt_t_thr:  # pure rotation is challenging
+        t_err = 0
+
+    # angle error between 2 rotation matrices
+    R_gt = T_0to1[:3, :3]
+    cos = (np.trace(np.dot(R.T, R_gt)) - 1) / 2
+    cos = np.clip(cos, -1., 1.)  # handle numercial errors
+    R_err = np.rad2deg(np.abs(np.arccos(cos)))
+    return t_err, R_err
+
+
 def project_points(pts, RT, K):
     pts = np.matmul(pts, RT[:, :3].transpose()) + RT[:, 3:].transpose()
     pts = np.matmul(pts, K.transpose())
@@ -204,6 +223,18 @@ def error_auc(type, errors, thresholds):
 
 
 def aggregate_metrics(metrics, epi_err_thr=5e-4):
+    """
+    Aggregate metrics for the whole dataset:
+    (This method should be called once per dataset)
+    1. AUC of the pose error (angular) at the threshold [5, 10, 20]
+    2. Mean matching precision at the threshold 5e-4(ScanNet), 1e-4(MegaDepth)
+    """
+
+    # filter duplicates
+    unq_ids = OrderedDict((iden, id) for id, iden in enumerate(metrics['identifiers']))
+    unq_ids = list(unq_ids.values())
+    logger.info(f'Aggregating metrics over {len(unq_ids)} unique items...')
+
     # pose auc
     angular_thresholds = [15, 30]
     rotation_aucs = error_auc("R", np.array(metrics['R_errs']), angular_thresholds)
