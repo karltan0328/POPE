@@ -207,6 +207,7 @@ def error_acc(type, errors, thresholds):
         accs.append(np.sum(errors < thr) / errors.shape[0])
     res = {f'{type}:ACC{t:2d}': auc for t, auc in zip(thresholds, accs)}
     res[f"{type}:medianErr"] = np.median(errors)
+    res[f"{type}:meanErr"] = np.mean(errors)
     return res
 
 
