@@ -6,12 +6,16 @@ node_modules/
 **/LINEMOD
 **/LM_dataset
 **/LM_dataset-points
+**/LM_dataset.zip
 **/onepose
 **/onepose-points
-**/oneposeplusplus
-**/oneposeplusplus-points
+**/onepose.zip
+**/onepose_plusplus
+**/onepose_plusplus-points
+**/onepose_plusplus.zip
 **/ycbv
 **/ycbv-points
+**/ycbv.zip
 
 **/weights
 **/ttest.ipynb

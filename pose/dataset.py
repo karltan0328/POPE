@@ -24,29 +24,35 @@ class pose_dataset(Dataset):
                 dir_name = os.path.dirname(sample_data)
                 FULL_ROOT_DIR = os.path.join(dataset_path, dir_name)
                 for rotation_key, rotation_list in zip(dict.keys(), dict.values()):
+                    if dataset_name == 'ycbv':
+                        rotation_list = rotation_list[::2]
                     for pair_idx, pair_name in enumerate(rotation_list):
                         base_name = os.path.basename(pair_name)
-                        idx0_name = base_name.split("-")[0]
-                        idx1_name = base_name.split("-")[1]
+                        if dataset_name == 'ycbv':
+                            idx0_name = base_name.split("png-")[0] + "png"
+                            idx1_name = base_name.split("png-")[1]
+                        else:
+                            idx0_name = base_name.split("-")[0]
+                            idx1_name = base_name.split("-")[1]
 
-                        if dataset_name == 'linemod':
+                        if dataset_name == 'linemod' or dataset_name == 'ycbv':
                             image0_name = os.path.join(FULL_ROOT_DIR, idx0_name)
                             image1_name = os.path.join(FULL_ROOT_DIR.replace("color", "color_full"), idx1_name)
-                        elif dataset_name == 'onepose' or dataset_name == 'oneposeplusplus':
+                        elif dataset_name == 'onepose' or dataset_name == 'onepose_plusplus':
                             image0_name = os.path.join(FULL_ROOT_DIR, idx0_name)
                             image1_name = os.path.join(FULL_ROOT_DIR.replace("color", "color"), idx1_name)
 
-                        if dataset_name == 'linemod':
+                        if dataset_name == 'linemod' or dataset_name == 'ycbv':
                             K0_path = image0_name.replace("color", "intrin_ba").replace("png", "txt")
                             K1_path = image1_name.replace("color_full", "intrin").replace("png", "txt")
-                        elif dataset_name == 'onepose' or dataset_name == 'oneposeplusplus':
+                        elif dataset_name == 'onepose' or dataset_name == 'onepose_plusplus':
                             K0_path = image0_name.replace("color", "intrin_ba").replace("png", "txt")
                             K1_path = image1_name.replace("color", "intrin_ba").replace("png", "txt")
 
-                        if dataset_name == 'linemod':
+                        if dataset_name == 'linemod' or dataset_name == 'ycbv':
                             pose0_path = image0_name.replace("color", "poses_ba").replace("png", "txt")
                             pose1_path = image1_name.replace("color_full", "poses_ba").replace("png", "txt")
-                        elif dataset_name == 'onepose' or dataset_name == 'oneposeplusplus':
+                        elif dataset_name == 'onepose' or dataset_name == 'onepose_plusplus':
                             pose0_path = image0_name.replace("color", "poses_ba").replace("png", "txt")
                             pose1_path = image1_name.replace("color", "poses_ba").replace("png", "txt")
 
@@ -61,29 +67,33 @@ class pose_dataset(Dataset):
                         mkpts1_path = os.path.join(mkpts1_path, f'{points_name}.txt')
                         pre_K_path = os.path.join(pre_K_path, f'{points_name}.txt')
 
-                        K0 = np.loadtxt(K0_path)
-                        K1 = np.loadtxt(K1_path)
-                        pose0 = np.loadtxt(pose0_path)
-                        pose1 = np.loadtxt(pose1_path)
+                        K0 = np.loadtxt(K0_path, delimiter=' ')
+                        K1 = np.loadtxt(K1_path, delimiter=' ')
+                        pose0 = np.loadtxt(pose0_path, delimiter=' ')
+                        pose1 = np.loadtxt(pose1_path, delimiter=' ')
                         if pose0.shape[0] == 3:
                             pose0 = np.concatenate((pose0, np.array([[0, 0, 0, 1]])), axis=0)
                         if pose1.shape[0] == 3:
                             pose1 = np.concatenate((pose1, np.array([[0, 0, 0, 1]])), axis=0)
 
                         try:
-                            mkpts0 = np.loadtxt(mkpts0_path)
+                            mkpts0 = np.loadtxt(mkpts0_path, delimiter=' ')
                         except:
                             print(f'{mkpts0_path} does not exist')
                             continue
-                        mkpts1 = np.loadtxt(mkpts1_path)
-                        pre_bbox = np.loadtxt(pre_bbox_path)
-                        _3d_bbox = np.loadtxt(f'{os.path.join(dataset_path, label)}/box3d_corners.txt')
-                        bbox_pts_3d, _ = project_points(_3d_bbox, pose1[:3, :4], K1)
-                        bbox_pts_3d = bbox_pts_3d.astype(np.int32)
-                        x0, y0, w, h = cv2.boundingRect(bbox_pts_3d)
-                        x1, y1 = x0 + w, y0 + h
-                        gt_bbox = np.array([x0, y0, x1, y1])
-                        pre_K = np.loadtxt(pre_K_path)
+                        mkpts1 = np.loadtxt(mkpts1_path, delimiter=' ')
+                        pre_bbox = np.loadtxt(pre_bbox_path, delimiter=' ')
+                        if dataset_name == 'ycbv':
+                            gt_bbox_name = image0_name.replace("color", "bbox_2d").replace("png", "txt")
+                            gt_bbox = np.loadtxt(gt_bbox_name, delimiter=' ')
+                        else:
+                            _3d_bbox = np.loadtxt(f'{os.path.join(dataset_path, label)}/box3d_corners.txt', delimiter=' ')
+                            bbox_pts_3d, _ = project_points(_3d_bbox, pose1[:3, :4], K1)
+                            bbox_pts_3d = bbox_pts_3d.astype(np.int32)
+                            x0, y0, w, h = cv2.boundingRect(bbox_pts_3d)
+                            x1, y1 = x0 + w, y0 + h
+                            gt_bbox = np.array([x0, y0, x1, y1])
+                        pre_K = np.loadtxt(pre_K_path, delimiter=' ')
                         if mkpts0.shape[0] == 0:
                             print(f'file {mkpts0_path} is empty')
                             continue

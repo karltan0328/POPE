@@ -63,8 +63,23 @@ class Mkpts_Reg_Model(nn.Module):
         elif self.mode == '6d':
             self.rotation_head = nn.Linear(in_features=self.inner_size, out_features=6)
 
+        # self.mlp = nn.Sequential(
+        #     nn.Linear(in_features=num_sample * 2 * self.pts_size * (2 * self.N_freqs + 1),
+        #               out_features=num_sample * self.pts_size * (2 * self.N_freqs + 1)),
+        #     nn.LeakyReLU(),
+        #     nn.Linear(in_features=num_sample * self.pts_size * (2 * self.N_freqs + 1),
+        #               out_features=num_sample * (2 * self.N_freqs + 1)),
+        #     nn.LeakyReLU(),
+        #     nn.Linear(in_features=num_sample * (2 * self.N_freqs + 1), out_features=2 * self.N_freqs + 1),
+        #     nn.LeakyReLU(),
+        #     nn.Linear(in_features=2 * self.N_freqs + 1, out_features=self.inner_size)
+        # )
         self.mlp = nn.Sequential(
-            nn.Linear(in_features=num_sample * 2 * self.pts_size * (2 * self.N_freqs + 1), out_features=self.inner_size),
+            nn.Linear(in_features=num_sample * 2 * self.pts_size * (2 * self.N_freqs + 1),
+                      out_features=num_sample * (2 * self.N_freqs + 1)),
+            nn.LeakyReLU(),
+            nn.Linear(in_features=num_sample * (2 * self.N_freqs + 1),
+                      out_features=self.inner_size),
             nn.LeakyReLU(),
             nn.Linear(in_features=self.inner_size, out_features=self.inner_size)
         )
