@@ -46,10 +46,10 @@ class Mkpts_Reg_Model(nn.Module):
         self.pts_size = 2
         self.N_freqs = 9
         self.embedding = Embedding(in_channels=self.pts_size, N_freqs=self.N_freqs, logscale=False)
-        self.transformerlayer = nn.TransformerEncoderLayer(d_model=2 * self.pts_size * (2 * self.N_freqs + 1), nhead=1)
+        self.transformerlayer = nn.TransformerEncoderLayer(d_model=2 * self.pts_size * (2 * self.N_freqs + 1), nhead=2)
         self.transformer = nn.TransformerEncoder(encoder_layer=self.transformerlayer, num_layers=4)
 
-        self.inner_size = 64
+        self.inner_size = 32
         self.out_channel1 = 9
         self.out_channel2 = 4
 
@@ -65,14 +65,33 @@ class Mkpts_Reg_Model(nn.Module):
 
         self.mlp = nn.Sequential(
             nn.Linear(in_features=num_sample * 2 * self.pts_size * (2 * self.N_freqs + 1),
-                      out_features=num_sample * (2 * self.N_freqs + 1)),
+                    out_features=num_sample * (2 * self.N_freqs + 1)),
             nn.LeakyReLU(),
+            nn.Dropout(p=0.5),
             nn.Linear(in_features=num_sample * (2 * self.N_freqs + 1),
-                      out_features=128),
+                    out_features=num_sample),
             nn.LeakyReLU(),
-            nn.Linear(in_features=128, out_features=self.inner_size),
-            nn.Linear(in_features=self.inner_size, out_features=self.inner_size),
+            nn.Dropout(p=0.2),
+            nn.Linear(in_features=num_sample,
+                    out_features=256),
             nn.LeakyReLU(),
+            nn.Dropout(p=0.2),
+            nn.Linear(in_features=256,
+                    out_features=128),
+            nn.LeakyReLU(),
+            nn.Dropout(p=0.1),
+            nn.Linear(in_features=128,
+                    out_features=64),
+            nn.LeakyReLU(),
+            nn.Dropout(p=0.1),
+            nn.Linear(in_features=64,
+                    out_features=self.inner_size),
+            nn.LeakyReLU(),
+            nn.Dropout(p=0.1),
+            nn.Linear(in_features=self.inner_size,
+                    out_features=self.inner_size),
+            nn.LeakyReLU(),
+            nn.Dropout(p=0.1),
         )
 
     def convert2matrix(self, x: torch.tensor):
