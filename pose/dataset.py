@@ -61,11 +61,16 @@ class pose_dataset(Dataset):
                         mkpts0_path = os.path.join(points_file_path, "mkpts0")
                         mkpts1_path = os.path.join(points_file_path, "mkpts1")
                         pre_K_path = os.path.join(points_file_path, "pre_K")
+                        img0_path = os.path.join(points_file_path, "img0")
+                        img1_path = os.path.join(points_file_path, "img1")
+
                         points_name = pair_name.split("/")[-1]
                         pre_bbox_path = os.path.join(pre_bbox_path, f'{points_name}.txt')
                         mkpts0_path = os.path.join(mkpts0_path, f'{points_name}.txt')
                         mkpts1_path = os.path.join(mkpts1_path, f'{points_name}.txt')
                         pre_K_path = os.path.join(pre_K_path, f'{points_name}.txt')
+                        img0_path = os.path.join(img0_path, f'{points_name}.png')
+                        img1_path = os.path.join(img1_path, f'{points_name}.png')
 
                         K0 = np.loadtxt(K0_path, delimiter=' ')
                         K1 = np.loadtxt(K1_path, delimiter=' ')
@@ -94,6 +99,11 @@ class pose_dataset(Dataset):
                             x1, y1 = x0 + w, y0 + h
                             gt_bbox = np.array([x0, y0, x1, y1])
                         pre_K = np.loadtxt(pre_K_path, delimiter=' ')
+                        img0 = cv2.imread(img0_path)
+                        img1 = cv2.imread(img1_path)
+                        # 将图片大小转换为(256, 256)
+                        img0 = cv2.resize(img0, (256, 256))
+                        img1 = cv2.resize(img1, (256, 256))
                         if mkpts0.shape[0] == 0:
                             print(f'file {mkpts0_path} is empty')
                             continue
@@ -114,6 +124,8 @@ class pose_dataset(Dataset):
                         item['pre_K'] = pre_K
                         item['name'] = name
                         item['pair_name'] = pair_name
+                        item['img0'] = img0
+                        item['img1'] = img1
                         self.data.append(item)
 
     def __len__(self):
@@ -148,14 +160,20 @@ if __name__ == '__main__':
         onepose_json_path = 'data/pairs/Onepose-test.json'
         onepose_points_path = 'data/onepose-points/'
 
-        oneposeplusplus_path = 'data/oneposeplusplus/'
+        oneposeplusplus_path = 'data/onepose_plusplus/'
         oneposeplusplus_json_path = 'data/pairs/OneposePlusPlus-test.json'
-        oneposeplusplus_points_path = 'data/oneposeplusplus-points/'
+        oneposeplusplus_points_path = 'data/onepose_plusplus-points/'
+
+        ycbv_path = 'data/ycbv/'
+        ycbv_json_path = 'data/pairs/YCB-VIDEO-test.json'
+        ycbv_points_path = 'data/ycbv-points'
     paths = [
-        ('linemod', LM_dataset_path, LM_dataset_json_path, LM_dataset_points_path),
-        ('onepose', onepose_path, onepose_json_path, onepose_points_path),
-        ('oneposeplusplus', oneposeplusplus_path, oneposeplusplus_json_path, oneposeplusplus_points_path)
+        # ('linemod', LM_dataset_path, LM_dataset_json_path, LM_dataset_points_path),
+        # ('onepose', onepose_path, onepose_json_path, onepose_points_path),
+        ('onepose_plusplus', oneposeplusplus_path, oneposeplusplus_json_path, oneposeplusplus_points_path),
+        # ('ycbv', ycbv_path, ycbv_json_path, ycbv_points_path),
     ]
     data = pose_dataset(paths)
-    for key in data[0].keys():
-        print(data[0][key])
+    # for key in data[0].keys():
+    #     print(key)
+    print(type(data[0]['img0']))
