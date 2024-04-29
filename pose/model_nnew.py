@@ -217,12 +217,12 @@ class Mkpts_Reg_Model(nn.Module):
                                    logscale=False)
         self.transformer_mkpts = Transformer(d_model=2 * self.pts_size * (2 * self.N_freqs + 1), nhead=4)
         self.mlp1 = nn.Sequential(
-            nn.Linear(in_features=2 * self.pts_size * (2 * self.N_freqs + 1) * 500,
-                      out_features=2 * (2 * self.N_freqs + 1) * 500),
+            nn.Linear(in_features=2 * self.pts_size * (2 * self.N_freqs + 1) * num_sample,
+                      out_features=2 * (2 * self.N_freqs + 1) * num_sample),
             nn.LeakyReLU(),
             nn.Dropout(p=0.5),
 
-            nn.Linear(in_features=2 * (2 * self.N_freqs + 1) * 500,
+            nn.Linear(in_features=2 * (2 * self.N_freqs + 1) * num_sample,
                       out_features=2000),
             nn.LeakyReLU(),
             nn.Dropout(p=0.2),
@@ -283,25 +283,44 @@ class Mkpts_Reg_Model(nn.Module):
                 batch_mkpts1: torch.tensor,
                 batch_img0: torch.tensor,
                 batch_img1: torch.tensor):
-        x_mkpts = self.embedding(torch.cat((batch_mkpts0, batch_mkpts1), dim=-1))
-        x_mkpts = self.transformer_mkpts(x_mkpts, x_mkpts)
-        # print(x_mkpts.shape)
-        x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], -1)
-        x_mkpts = self.mlp1(x_mkpts)
-        x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], 2, 1000)
+        net_mode = 'mkpts + imgs'
+        if net_mode == 'mkpts':
+            x_mkpts = self.embedding(torch.cat((batch_mkpts0, batch_mkpts1), dim=-1))
+            x_mkpts = self.transformer_mkpts(x_mkpts, x_mkpts)
+            x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], -1)
+            x_mkpts = self.mlp1(x_mkpts)
+            x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], 2, 1000)
+            output = self.transformer_imgs(x_mkpts, x_mkpts)
+            output = output.reshape(output.shape[0], -1)
+            output = self.mlp2(output)
+            pred_trans = self.translation_head(output)
+            pred_rot = self.convert2matrix(self.rotation_head(output))
+        elif net_mode == 'imgs':
+            x_img0 = self.convnextv2(batch_img0).unsqueeze(1)
+            x_img1 = self.convnextv2(batch_img1).unsqueeze(1)
+            x_img = torch.cat((x_img0, x_img1), dim=1)
+            output = self.transformer_imgs(x_img, x_img) # onepose 0.733294
+            output = output.reshape(output.shape[0], -1)
+            output = self.mlp2(output)
+            pred_trans = self.translation_head(output)
+            pred_rot = self.convert2matrix(self.rotation_head(output))
+        elif net_mode == 'mkpts + imgs':
+            x_mkpts = self.embedding(torch.cat((batch_mkpts0, batch_mkpts1), dim=-1))
+            x_mkpts = self.transformer_mkpts(x_mkpts, x_mkpts)
+            # print(x_mkpts.shape)
+            x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], -1)
+            x_mkpts = self.mlp1(x_mkpts)
+            x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], 2, 1000)
+            x_img0 = self.convnextv2(batch_img0).unsqueeze(1)
+            x_img1 = self.convnextv2(batch_img1).unsqueeze(1)
+            x_img = torch.cat((x_img0, x_img1), dim=1)
+            # output = self.transformer_imgs(x_img, x_mkpts) # linemod 0.493526
+            output = self.transformer_imgs(x_mkpts, x_img) # linemod 0.497087
+            output = output.reshape(output.shape[0], -1)
+            output = self.mlp2(output)
+            pred_trans = self.translation_head(output)
+            pred_rot = self.convert2matrix(self.rotation_head(output))
 
-        x_img0 = self.convnextv2(batch_img0).unsqueeze(1)
-        x_img1 = self.convnextv2(batch_img1).unsqueeze(1)
-        x_img = torch.cat((x_img0, x_img1), dim=1)
-
-        # output = self.transformer_imgs(x_img, x_mkpts) # onepose 0.672908
-        output = self.transformer_imgs(x_mkpts, x_img) # onepose 0.733294
-        output = output.reshape(output.shape[0], -1)
-
-        output = self.mlp2(output)
-
-        pred_trans = self.translation_head(output)
-        pred_rot = self.convert2matrix(self.rotation_head(output))
         return pred_trans, pred_rot
 
 
