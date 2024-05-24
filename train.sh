@@ -2,11 +2,8 @@
 
 echo "hello!"
 
-echo "python3 train-linemod.py"
-python3 train-linemod.py
+python3 train0429_mkpts.py
 
-echo "python3 train-onepose.py"
-python3 train-onepose.py
+python3 train0429_imgs.py
 
-echo "python3 train-onepose++.py"
-python3 train-onepose++.py
+python3 train0429_mkpts_imgs.py
