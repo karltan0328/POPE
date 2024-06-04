@@ -47,7 +47,7 @@ class ConvNeXtV2(nn.Module):
     def __init__(self, num_classes: int=1000):
         super().__init__()
         self.model = convnextv2.convnextv2_large(num_classes=num_classes)
-        checkpoint = torch.load('/root/autodl-tmp/POPE/weights/convnextv2_large_22k_384_ema.pt')
+        checkpoint = torch.load('/home2/mingxintan/POPE/weights/convnextv2_large_22k_384_ema.pt')
         checkpoint_model = checkpoint['model']
         state_dict = self.model.state_dict()
         for k in ['head.weight', 'head.bias']:

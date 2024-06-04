@@ -3,6 +3,7 @@ import random
 import numpy as np
 from loguru import logger
 from collections import OrderedDict
+import torch.nn.functional as F
 
 
 def geodesic_distance(X, X1=None, mode='mean'):
@@ -245,3 +246,93 @@ def aggregate_metrics(metrics, epi_err_thr=5e-4):
     translation_accs = error_acc("t", np.array(metrics['t_errs']), angular_thresholds)
 
     return {**rotation_aucs, **rotation_accs, **translation_aucs, **translation_accs}
+
+def remap_checkpoint_keys(ckpt):
+    new_ckpt = OrderedDict()
+    for k, v in ckpt.items():
+        if k.startswith('encoder'):
+            k = '.'.join(k.split('.')[1:]) # remove encoder in the name
+        if k.endswith('kernel'):
+            k = '.'.join(k.split('.')[:-1]) # remove kernel in the name
+            new_k = k + '.weight'
+            if len(v.shape) == 3: # resahpe standard convolution
+                kv, in_dim, out_dim = v.shape
+                ks = int(math.sqrt(kv))
+                new_ckpt[new_k] = v.permute(2, 1, 0).\
+                    reshape(out_dim, in_dim, ks, ks).transpose(3, 2)
+            elif len(v.shape) == 2: # reshape depthwise convolution
+                kv, dim = v.shape
+                ks = int(math.sqrt(kv))
+                new_ckpt[new_k] = v.permute(1, 0).\
+                    reshape(dim, 1, ks, ks).transpose(3, 2)
+            continue
+        elif 'ln' in k or 'linear' in k:
+            k = k.split('.')
+            k.pop(-2) # remove ln and linear in the name
+            new_k = '.'.join(k)
+        else:
+            new_k = k
+        new_ckpt[new_k] = v
+
+    # reshape grn affine parameters and biases
+    for k, v in new_ckpt.items():
+        if k.endswith('bias') and len(v.shape) != 1:
+            new_ckpt[k] = v.reshape(-1)
+        elif 'grn' in k:
+            new_ckpt[k] = v.unsqueeze(0).unsqueeze(1)
+    return new_ckpt
+
+def load_state_dict(model, state_dict, prefix='', ignore_missing="relative_position_index"):
+    missing_keys = []
+    unexpected_keys = []
+    error_msgs = []
+    # copy state_dict so _load_from_state_dict can modify it
+    metadata = getattr(state_dict, '_metadata', None)
+    state_dict = state_dict.copy()
+    if metadata is not None:
+        state_dict._metadata = metadata
+
+    def load(module, prefix=''):
+        local_metadata = {} if metadata is None else metadata.get(
+            prefix[:-1], {})
+        module._load_from_state_dict(
+            state_dict, prefix, local_metadata, True, missing_keys, unexpected_keys, error_msgs)
+        for name, child in module._modules.items():
+            if child is not None:
+                load(child, prefix + name + '.')
+
+    load(model, prefix=prefix)
+
+    warn_missing_keys = []
+    ignore_missing_keys = []
+    for key in missing_keys:
+        keep_flag = True
+        for ignore_key in ignore_missing.split('|'):
+            if ignore_key in key:
+                keep_flag = False
+                break
+        if keep_flag:
+            warn_missing_keys.append(key)
+        else:
+            ignore_missing_keys.append(key)
+
+    missing_keys = warn_missing_keys
+
+    if len(missing_keys) > 0:
+        print("Weights of {} not initialized from pretrained model: {}".format(
+            model.__class__.__name__, missing_keys))
+    if len(unexpected_keys) > 0:
+        print("Weights from pretrained model not used in {}: {}".format(
+            model.__class__.__name__, unexpected_keys))
+    if len(ignore_missing_keys) > 0:
+        print("Ignored weights of {} not initialized from pretrained model: {}".format(
+            model.__class__.__name__, ignore_missing_keys))
+    if len(error_msgs) > 0:
+        print('\n'.join(error_msgs))
+
+def _get_activation_fn(activation):
+    if activation == "relu":
+        return F.relu
+    elif activation == "gelu":
+        return F.gelu
+    raise RuntimeError("activation should be relu/gelu, not {}".format(activation))
