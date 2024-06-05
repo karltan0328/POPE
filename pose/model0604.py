@@ -70,7 +70,10 @@ class ConvNeXtV2(nn.Module):
             pass
         else:
             pass
-        checkpoint = torch.load('/home2/mingxintan/POPE/weights/' + pt_name, map_location='cpu')
+        try:
+            checkpoint = torch.load('/home2/mingxintan/POPE/weights/' + pt_name, map_location='cpu')
+        except:
+            checkpoint = torch.load('/root/autodl-tmp/POPE/weights/' + pt_name, map_location='cpu')
 
         checkpoint_model = checkpoint['model']
         state_dict = self.model.state_dict()
@@ -165,7 +168,7 @@ class MoCoPE(nn.Module):
         self.embedding = Embedding(in_channels=self.pts_size,
                                    N_freqs=self.N_freqs,
                                    logscale=False)
-        self.transformer_mkpts = nn.Transformer(d_model=2 * self.pts_size * (2 * self.N_freqs + 1), nhead=2)
+        self.transformer_mkpts = nn.Transformer(d_model=2 * self.pts_size * (2 * self.N_freqs + 1), nhead=1)
         self.mlp1 = nn.Sequential(
             nn.Linear(in_features=2 * self.pts_size * (2 * self.N_freqs + 1) * num_sample,
                       out_features=2 * (2 * self.N_freqs + 1) * num_sample),
@@ -173,7 +176,7 @@ class MoCoPE(nn.Module):
             nn.Dropout(p=0.5),
 
             nn.Linear(in_features=2 * (2 * self.N_freqs + 1) * num_sample,
-                      out_features=2000),
+                      out_features=1024),
             nn.LeakyReLU(),
             nn.Dropout(p=0.2),
         )
@@ -181,13 +184,19 @@ class MoCoPE(nn.Module):
         # CNN
         self.cnn_model_type = cnn_model_type
         self.convnextv2 = ConvNeXtV2(model_type=self.cnn_model_type)
+        self.mlp_img = nn.Sequential(
+            nn.Linear(in_features=1000,
+                      out_features=512),
+            nn.LeakyReLU(),
+            nn.Dropout(p=0.2),
+        )
 
         # Fusion
-        self.mkpts_as_q = nn.Transformer(d_model=1000, nhead=2)
-        self.cnn_as_q = nn.Transformer(d_model=1000, nhead=2)
+        self.mkpts_as_q = nn.Transformer(d_model=512, nhead=1)
+        self.cnn_as_q = nn.Transformer(d_model=512, nhead=1)
 
         self.mlp2 = nn.Sequential(
-            nn.Linear(in_features=4000,
+            nn.Linear(in_features=2048,
                     out_features=1024),
             nn.LeakyReLU(),
             nn.Dropout(p=0.5),
@@ -246,10 +255,12 @@ class MoCoPE(nn.Module):
             x_mkpts = self.transformer_mkpts(x_mkpts, x_mkpts)
             x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], -1)
             x_mkpts = self.mlp1(x_mkpts)
-            x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], 2, 1000)
+            x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], 2, -1)
 
-            x_img0 = self.convnextv2(batch_img0).unsqueeze(1)
-            x_img1 = self.convnextv2(batch_img1).unsqueeze(1)
+            x_img0 = self.convnextv2(batch_img0)
+            x_img1 = self.convnextv2(batch_img1)
+            x_img0 = self.mlp_img(x_img0).unsqueeze(1)
+            x_img1 = self.mlp_img(x_img1).unsqueeze(1)
             x_img = torch.cat((x_img0, x_img1), dim=1)
 
             qmkpts = self.mkpts_as_q(x_img, x_mkpts)
@@ -261,14 +272,16 @@ class MoCoPE(nn.Module):
             x_mkpts = self.transformer_mkpts(x_mkpts, x_mkpts)
             x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], -1)
             x_mkpts = self.mlp1(x_mkpts)
-            x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], 2, 1000)
+            x_mkpts = x_mkpts.reshape(x_mkpts.shape[0], 2, -1)
 
             qmkpts = self.mkpts_as_q(x_mkpts, x_mkpts)
 
             x = torch.cat((qmkpts, qmkpts), dim=-1)
         elif self.train_type == 'cnn':
-            x_img0 = self.convnextv2(batch_img0).unsqueeze(1)
-            x_img1 = self.convnextv2(batch_img1).unsqueeze(1)
+            x_img0 = self.convnextv2(batch_img0)
+            x_img1 = self.convnextv2(batch_img1)
+            x_img0 = self.mlp_img(x_img0).unsqueeze(1)
+            x_img1 = self.mlp_img(x_img1).unsqueeze(1)
             x_img = torch.cat((x_img0, x_img1), dim=1)
 
             qimg = self.cnn_as_q(x_img, x_img)

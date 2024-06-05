@@ -101,9 +101,9 @@ class pose_dataset(Dataset):
                         pre_K = np.loadtxt(pre_K_path, delimiter=' ')
                         img0 = cv2.imread(img0_path)
                         img1 = cv2.imread(img1_path)
-                        # 将图片大小转换为(512, 512)
-                        img0 = cv2.resize(img0, (512, 512))
-                        img1 = cv2.resize(img1, (512, 512))
+                        # 将图片大小转换为(384, 384)
+                        img0 = cv2.resize(img0, (128, 128))
+                        img1 = cv2.resize(img1, (128, 128))
                         if mkpts0.shape[0] == 0:
                             print(f'file {mkpts0_path} is empty')
                             continue

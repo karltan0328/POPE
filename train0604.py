@@ -86,8 +86,8 @@ train_size = int(0.8 * len(dataset))
 test_size = len(dataset) - train_size
 train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
-train_dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True, drop_last=True, collate_fn=collate_fn(num_sample))
-test_dataloader = DataLoader(test_dataset, batch_size=8, shuffle=True, drop_last=True, collate_fn=collate_fn(num_sample))
+train_dataloader = DataLoader(train_dataset, batch_size=2, shuffle=True, drop_last=True, collate_fn=collate_fn(num_sample))
+test_dataloader = DataLoader(test_dataset, batch_size=2, shuffle=True, drop_last=True, collate_fn=collate_fn(num_sample))
 
 net = MoCoPE(num_sample=num_sample, mode=rot_mode, cnn_model_type=cnn_model_type, train_type=train_type).to(device)
 net.train()
