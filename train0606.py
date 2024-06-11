@@ -171,7 +171,7 @@ print(f'cost time: {(end_time - start_time).total_seconds() / 3600} h')
 
 now_time = datetime.now()
 
-ckpts_name = f"{paths[0][0]}-{now_time.strftime('%Y-%m-%d-%H')}-{train_type}-{cnn_model_type}-{num_sample}-{num_epochs}-{loss:.4f}.pth"
-torch.save(net, f'./weight/{ckpts_name}')
+ckpts_name = f"{path[0][0]}-{now_time.strftime('%Y-%m-%d-%H')}-{train_type}-{vim_model_type}-{num_sample}-{num_epochs}-{loss:.4f}.pth"
+torch.save(net, f'./weights/{ckpts_name}')
 
 print(ckpts_name)
