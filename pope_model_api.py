@@ -178,5 +178,8 @@ matcher = Matcher(config=default_cfg)
 # we set strict to False
 # matcher.pth就是loftr的indoor_ot.ckpt，文件大小是一样的，都是44.1M
 matcher.load_state_dict(torch.load("weights/matcher.pth")['state_dict'], strict=False)
-matcher = matcher.eval().to('cuda:1')
+try:
+    matcher = matcher.eval().to('cuda:1')
+except:
+    matcher = matcher.eval().to('cuda:0')
 logger.info(f"load Matcher successfully")
