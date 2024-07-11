@@ -91,10 +91,10 @@ class Vim(nn.Module):
         super().__init__()
         if model_type == 'small':
             vim_name = 'vim_small_patch16_stride8_224_bimambav2_final_pool_mean_abs_pos_embed_with_midclstok_div2'
-            checkpoint_name = '/data1/tmx/POPE/weights/vim_s_midclstok_ft_81p6acc.pth'
+            checkpoint_name = '/home2/mingxintan/POPE/weights/vim_s_midclstok_ft_81p6acc.pth'
         elif model_type == 'tiny':
             vim_name = 'vim_tiny_patch16_stride8_224_bimambav2_final_pool_mean_abs_pos_embed_with_midclstok_div2'
-            checkpoint_name = '/data1/tmx/POPE/weights/vim_t_midclstok_ft_78p3acc.pth'
+            checkpoint_name = '/home2/mingxintan/POPE/weights/vim_t_midclstok_ft_78p3acc.pth'
         else:
             pass
         self.model = create_model(vim_name,

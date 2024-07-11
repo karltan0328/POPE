@@ -102,13 +102,13 @@ if __name__ == "__main__":
 
                 img0 = cv2.cvtColor(image0, cv2.COLOR_BGR2GRAY)
                 img0 = torch.from_numpy(img0).float()[None] / 255.
-                img0 = img0.unsqueeze(0).cuda()
+                img0 = img0.unsqueeze(0).to('cuda:1')
 
                 matching_score = [[0] for _ in range(len(top_images))]
                 for top_idx in range(len(top_images)):
                     img1 = cv2.cvtColor(top_images[top_idx]["crop_image"], cv2.COLOR_BGR2GRAY)
                     img1 = torch.from_numpy(img1).float()[None] / 255.
-                    img1 = img1.unsqueeze(0).cuda()
+                    img1 = img1.unsqueeze(0).to('cuda:1')
                     batch = {'image0':img0, 'image1':img1}
                     with torch.no_grad():
                         matcher(batch)

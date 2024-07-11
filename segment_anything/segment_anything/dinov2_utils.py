@@ -104,7 +104,7 @@ def get_cls_token_torch_from_code(model, input_tensor):
     return norm_cls_token
 
 def get_cls_token_torch(model, input_tensor):
-    input_tensor = input_tensor.cuda()
+    # input_tensor = input_tensor.cuda()
     out = model(input_tensor, is_training=True )
     cls_token = out['x_norm_clstoken']
     # norm_cls_token = torch.nn.functional.normalize(cls_token)
