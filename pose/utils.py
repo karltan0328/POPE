@@ -238,7 +238,12 @@ def aggregate_metrics(metrics, epi_err_thr=5e-4):
     logger.info(f'Aggregating metrics over {len(unq_ids)} unique items...')
 
     # pose auc
-    angular_thresholds = [15, 30]
+    angular_thresholds = [1, 2, 3, 4, 5,
+                          6, 7, 8, 9, 10,
+                          11, 12, 13, 14, 15,
+                          16, 17, 18, 19, 20,
+                          21, 22, 23, 24, 25,
+                          26, 27, 28, 29, 30]
     rotation_aucs = error_auc("R", np.array(metrics['R_errs']), angular_thresholds)
     translation_aucs = error_auc("t", np.array(metrics['t_errs']), angular_thresholds)
 
